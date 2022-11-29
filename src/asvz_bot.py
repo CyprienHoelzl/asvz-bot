@@ -81,6 +81,7 @@ class AsvzBotException(Exception):
 class CredentialsManager:
     def __init__(self, org, uname, password, save_credentials):
         self.credentials = self.__load()
+        self.counter = 0
         if self.credentials is None:
             if org is None or uname is None:
                 raise AsvzBotException("Not all required credentials are supplied")
@@ -233,6 +234,7 @@ class AsvzEnroller:
         self.chromedriver = chromedriver
         self.lesson_url = lesson_url
         self.creds = creds
+        self.counter = 0
 
         logging.info(
             "Summary:\n\tOrganisation: {}\n\tUsername: {}\n\tPassword: {}\n\tLesson: {}".format(
@@ -363,7 +365,7 @@ class AsvzEnroller:
 
     def __organisation_login(self, driver):
         logging.debug("Start login process")
-        WebDriverWait(driver, 20).until(
+        WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -447,7 +449,7 @@ class AsvzEnroller:
                     "Stopping enrollment because lesson has started."
                 )
 
-            retry_interval_sec = 1 * 30
+            retry_interval_sec = 1 * 15
             logging.info(
                 "Lesson is booked out. Rechecking in {} secs..".format(
                     retry_interval_sec
@@ -455,6 +457,12 @@ class AsvzEnroller:
             )
             time.sleep(retry_interval_sec)
             driver.refresh()
+            if self.counter == 100:
+                self.counter = 0
+                logging.info("Logging in")
+                self.__organisation_login(driver)
+            else:
+                self.counter = self.counter + 1
 
 
 def validate_start_time(start_time):
@@ -562,7 +570,7 @@ def main():
         logging.error(e)
         exit(1)
 
-    chromedriver = get_chromedriver()
+    chromedriver = '/usr/lib/chromium-browser/chromedriver'#get_chromedriver()
 
     enroller = None
     if args.type == "lesson":
