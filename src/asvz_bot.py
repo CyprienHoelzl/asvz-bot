@@ -15,7 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import ChromeType
 
@@ -35,6 +35,7 @@ ORGANISATIONS = {
     "ETH": "ETH Zürich",
     "UZH": "Universität Zürich",
     "ZHAW": "ZHAW - Zürcher Hochschule für Angewandte Wissenschaften",
+    "PHZH": "PH Zürich - Pädagogische Hochschule Zürich",
     "ASVZ": "ASVZ",
 }
 
@@ -48,10 +49,8 @@ WEEKDAYS = {
     "Su": "Sunday",
 }
 
-LEVELS = {"Alle": 2104,
-          "Mittlere":880,
-          "Fortgeschrittene":726}
-          
+LEVELS = {"Alle": 2104, "Mittlere": 880, "Fortgeschrittene": 726}
+
 FACILITIES = {
     "Sport Center Polyterrasse": 45594,
     "Sport Center Irchel": 45577,
@@ -144,7 +143,15 @@ class CredentialsManager:
 class AsvzEnroller:
     @classmethod
     def from_lesson_attributes(
-        cls, chromedriver, weekday, start_time, trainer, facility, level, sport_id, creds
+        cls,
+        chromedriver,
+        weekday,
+        start_time,
+        trainer,
+        facility,
+        level,
+        sport_id,
+        creds,
     ):
         today = datetime.today()
         weekday_int = time.strptime(WEEKDAYS[weekday], "%A").tm_wday
@@ -152,7 +159,7 @@ class AsvzEnroller:
         if level is not None:
             str_level = f"f[2]=niveau:{LEVELS[level]}&"
         else:
-            str_level = ''
+            str_level = ""
         sport_url = (
             f"{SPORTFAHRPLAN_BASE_URL}?"
             + f"f[0]=sport:{sport_id}&"
@@ -271,28 +278,38 @@ class AsvzEnroller:
 
             logging.info("Starting enrollment")
 
-            if self.enrollment_start < datetime.today():
-                logging.info(
-                    "Enrollment is already open. Checking for available places."
-                )
-                self.__wait_for_free_places(driver)
-
-            logging.info("Lesson has free places")
-
-            self.__organisation_login(driver)
-
-            logging.info("Waiting for enrollment")
-            WebDriverWait(driver, 5 * 60).until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        "//button[@id='btnRegister' and @class='btn-primary btn enrollmentPlacePadding ng-star-inserted']",
+            enrolled = False
+            while not enrolled:
+                if self.enrollment_start < datetime.today():
+                    logging.info(
+                        "Enrollment is already open. Checking for available places."
                     )
-                )
-            ).click()
-            time.sleep(5)
+                    self.__wait_for_free_places(driver)
 
-            logging.info("Successfully enrolled. Train hard and have fun!")
+                logging.info("Lesson has free places")
+
+                self.__organisation_login(driver)
+
+                try:
+                    logging.info("Waiting for enrollment")
+                    WebDriverWait(driver, 5 * 60).until(
+                        EC.element_to_be_clickable(
+                            (
+                                By.XPATH,
+                                "//button[@id='btnRegister' and @class='btn-primary btn enrollmentPlacePadding ng-star-inserted']",
+                            )
+                        )
+                    ).click()
+                    time.sleep(5)
+                except TimeoutException as e:
+                    logging.info(
+                        "Place was already taken in the meantime. Rechecking for available places."
+                    )
+                    continue
+
+                logging.info("Successfully enrolled. Train hard and have fun!")
+                enrolled = True
+
         except NoSuchElementException as e:
             logging.error(NO_SUCH_ELEMENT_ERR_MSG)
             raise e

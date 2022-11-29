@@ -7,9 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 03.11.22
+
+### Fixed
+
+- Retry enrollment when a lessons is full, a place gets free and enrollment is tried but some else was faster (#13).
+
+## [1.4.0] - 26.10.22
+
+### Added
+
+- Added PHZH login support (#12).
+
+## [1.3.0] - 11.10.22
+
 ### Added
 
 - Added CHANGELOG.md
+- Added optional selection filter based on training level from [CyprienHoelzl](https://github.com/CyprienHoelzl)
 
 ## [1.2.1] - 27.09.22
 
@@ -67,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial version
 
+[unreleased]: https://github.com/fbuetler/asvz-bot/compare/v1.3.0...master
+[1.3.0]: https://github.com/fbuetler/asvz-bot/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/fbuetler/asvz-bot/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/fbuetler/asvz-bot/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/fbuetler/asvz-bot/compare/v1.1.0...v1.1.1
